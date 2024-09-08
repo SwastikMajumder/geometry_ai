@@ -1,0 +1,271 @@
+f_parallel
+ f_line
+  u_0
+  u_1
+ f_line
+  u_2
+  u_3
+
+f_and
+ f_exist
+  f_xline
+   u_1
+   u_3
+ f_eq
+  f_xangle
+   u_0
+   u_1
+   u_3
+  f_xangle
+   u_2
+   u_3
+   u_1
+
+f_parallel
+ f_line
+  u_1
+  u_0
+ f_line
+  u_2
+  u_3
+
+f_and
+ f_exist
+  f_xline
+   u_1
+   u_3
+ f_eq
+  f_xangle
+   u_0
+   u_1
+   u_3
+  f_xangle
+   u_2
+   u_3
+   u_1
+
+f_parallel
+ f_line
+  u_1
+  u_0
+ f_line
+  u_3
+  u_2
+
+f_and
+ f_exist
+  f_xline
+   u_1
+   u_3
+ f_eq
+  f_xangle
+   u_0
+   u_1
+   u_3
+  f_xangle
+   u_2
+   u_3
+   u_1
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_and
+ f_eq
+  f_xline
+   u_0
+   u_1
+  f_xline
+   u_3
+   u_4
+ f_and
+  f_eq
+   f_xline
+    u_1
+    u_2
+   f_xline
+    u_4
+    u_5
+  f_eq
+   f_xline
+    u_2
+    u_0
+   f_xline
+    u_5
+    u_3
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_and
+ f_eq
+  f_xline
+   u_0
+   u_1
+  f_xline
+   u_3
+   u_4
+ f_and
+  f_eq
+   f_xangle
+    u_0
+    u_1
+    u_2
+   f_xangle
+    u_3
+    u_4
+    u_5
+  f_eq
+   f_xline
+    u_1
+    u_2
+   f_xline
+    u_4
+    u_5
+
+f_eq
+ f_line
+  u_0
+  u_1
+ f_line
+  u_2
+  u_3
+
+f_xcongruent
+ f_triangle
+  u_0
+  d_any1
+  u_1
+ f_triangle
+  u_2
+  d_any2
+  u_3
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_and
+ f_eq
+  f_xangle
+   u_0
+   u_1
+   u_2
+  f_xangle
+   u_3
+   u_4
+   u_5
+ f_and
+  f_eq
+   f_xangle
+    u_2
+    u_0
+    u_1
+   f_xangle
+    u_5
+    u_3
+    u_4
+  f_eq
+   f_xline
+    u_0
+    u_1
+   f_xline
+    u_3
+    u_4
+
+f_eq
+ f_angle
+  u_0
+  u_1
+  u_2
+ f_angle
+  u_3
+  u_0
+  u_1
+
+f_exist
+ f_xparallel
+  f_xline 
+   u_0
+   u_3
+  f_xline
+   u_1
+   u_2
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_congruent
+ f_triangle
+  u_2
+  u_0
+  u_1
+ f_triangle
+  u_5
+  u_3
+  u_4
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_and
+ f_eq
+  f_xangle
+   u_0
+   u_1
+   u_2
+  f_xangle
+   u_3
+   u_4
+   u_5
+ f_and
+  f_eq
+   f_xangle
+    u_1
+    u_2
+    u_0
+   f_xangle
+    u_4
+    u_5
+    u_3
+  f_eq
+   f_xline
+    u_0
+    u_1
+   f_xline
+    u_3
+    u_4
