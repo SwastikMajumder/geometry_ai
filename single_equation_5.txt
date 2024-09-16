@@ -1,0 +1,11 @@
+f_eq
+ u_0
+ u_1
+
+f_eq
+ f_add
+  u_0
+  f_mul
+   d_-1
+   u_1
+ d_0
