@@ -1,4 +1,4 @@
-<b> the project contains a lot of extra files and codes not relevant to the main functionalities </b> <br>
+<b> the project contains a lot of extra files and codes not relevant to the actual functioning </b> <br>
 excuse arbitrary folder, file and code variable naming. <br>
 run the main.py to get this output. this project solves a geometry question from grade 9 NCERT textbook chapter 7 triangle example 5. NCERT books are relevant in the indian education system. <br>
 install the required libraires like ``pip install lark-parser`` and ``pip install numpy`` before running the project. <br>
