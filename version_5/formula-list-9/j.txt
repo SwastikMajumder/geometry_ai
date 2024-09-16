@@ -1,0 +1,74 @@
+f_parallel
+ f_line
+  u_0
+  u_1
+ f_line
+  u_2
+  u_3
+
+f_if
+ f_exist
+  f_xline
+   u_1
+   u_3
+ f_eq
+  f_angle
+   u_0
+   u_1
+   u_3
+  f_angle
+   u_2
+   u_3
+   u_1
+
+f_parallel
+ f_line
+  u_1
+  u_0
+ f_line
+  u_2
+  u_3
+
+f_if
+ f_exist
+  f_xline
+   u_1
+   u_3
+ f_eq
+  f_angle
+   u_0
+   u_1
+   u_3
+  f_angle
+   u_2
+   u_3
+   u_1
+
+f_parallel
+ f_line
+  u_1
+  u_0
+ f_line
+  u_3
+  u_2
+
+f_if
+ f_exist
+  f_xline
+   u_1
+   u_3
+ f_eq
+  f_angle
+   u_0
+   u_1
+   u_3
+  f_angle
+   u_2
+   u_3
+   u_1
+
+f_if
+ d_true
+ u_0
+
+u_0

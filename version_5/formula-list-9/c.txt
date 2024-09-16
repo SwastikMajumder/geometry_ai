@@ -1,0 +1,113 @@
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_eq
+ f_line
+  u_0
+  u_1
+ f_line
+  u_3
+  u_4
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_eq
+ f_line
+  u_1
+  u_2
+ f_line
+  u_4
+  u_5
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_eq
+ f_line
+  u_0
+  u_2
+ f_line
+  u_3
+  u_5
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_eq
+ f_angle
+  u_0
+  u_1
+  u_2
+ f_angle
+  u_3
+  u_4
+  u_5
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_congruent
+ f_triangle
+  u_2
+  u_0
+  u_1
+ f_triangle
+  u_5
+  u_3
+  u_4
+
+f_congruent
+ f_triangle
+  u_0
+  u_1
+  u_2
+ f_triangle
+  u_3
+  u_4
+  u_5
+
+f_eq
+ f_angle
+  u_0
+  u_2
+  u_1
+ f_angle
+  u_3
+  u_5
+  u_4
