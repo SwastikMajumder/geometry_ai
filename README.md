@@ -1,5 +1,6 @@
 <b> the project contains a lot of extra files and codes not relevant to the main functionalities </b> <br>
 run the main.py to get this output. this project solves a geometry question from grade 9 NCERT textbook chapter 7 triangle example 5. NCERT books are relevant in the indian education system. <br>
+don't forget to install the required libraires like ``pip install lark-parser`` before running the project. <br>
 ```
 >>> hide
 >>> draw triangle
