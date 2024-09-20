@@ -1,0 +1,6 @@
+draw quadrilateral
+join BD
+equation parallel_line AB CD
+equation parallel_line AD BC
+compute
+compute

@@ -1,0 +1,9 @@
+draw triangle
+extend AC from C for 200
+extend BC from C for 200
+join CD CE DE
+equation angle_val ADE 90
+equation angle_val BAC 90
+equation line_eq AB DE
+compute
+compute

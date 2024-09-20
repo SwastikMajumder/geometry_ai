@@ -1,0 +1,9 @@
+draw triangle
+extend AC from C for 200
+extend BC from C for 200
+join EA EC CD BD
+equation line_eq CE BC
+equation line_eq AC CD
+equation angle_val ABD 90
+compute
+compute

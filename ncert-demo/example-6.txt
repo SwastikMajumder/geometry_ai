@@ -1,0 +1,8 @@
+draw triangle
+extend AB from A for 200
+join CD AD
+split AB
+join CE
+equation line_eq DE AB
+equation line_eq CD BC
+compute

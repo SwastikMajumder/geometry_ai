@@ -1,0 +1,8 @@
+draw triangle
+split AB
+join CD
+equation angle_eq ACD BCD
+equation angle_val ADC 90
+equation angle_val BDC 90
+compute
+compute

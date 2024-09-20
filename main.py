@@ -1,5 +1,7 @@
+from fractions import Fraction
+alter = False
 print_on= True
-import parser_4
+
 import sys
 import tkinter as tk
 from tkinter import Text, Scrollbar
@@ -39,147 +41,6 @@ def str_form(node):
             result += "\n" + recursive_str(child, depth + 1) # one node in one line
         return result
     return recursive_str(node)
-
-# Generate transformations of a given equation provided only one formula to do so
-# We can call this function multiple times with different formulas, in case we want to use more than one
-# This function is also responsible for computing arithmetic, pass do_only_arithmetic as True (others param it would ignore), to do so
-def apply_individual_formula_on_given_equation(equation, formula_lhs, formula_rhs, do_only_arithmetic=False, structure_satisfy=False):
-    variable_list = {}
-    
-    def node_type(s):
-        if s[:2] == "f_":
-            return s
-        else:
-            return s[:2]
-    def does_given_equation_satisfy_forumla_lhs_structure(equation, formula_lhs):
-        nonlocal variable_list
-        # u can accept anything and p is expecting only integers
-        # if there is variable in the formula
-        if node_type(formula_lhs.name) in {"u_", "p_"}: 
-            if formula_lhs.name in variable_list.keys(): # check if that variable has previously appeared or not
-                return str_form(variable_list[formula_lhs.name]) == str_form(equation) # if yes, then the contents should be same
-            else: # otherwise, extract the data from the given equation
-                if node_type(formula_lhs.name) == "p_" and "v_" in str_form(equation): # if formula has a p type variable, it only accepts integers
-                    return False
-                variable_list[formula_lhs.name] = copy.deepcopy(equation)
-                return True
-        if equation.name != formula_lhs.name or len(equation.children) != len(formula_lhs.children): # the formula structure should match with given equation
-            return False
-        for i in range(len(equation.children)): # go through every children and explore the whole formula / equation
-            if does_given_equation_satisfy_forumla_lhs_structure(equation.children[i], formula_lhs.children[i]) is False:
-                return False
-        return True
-    if structure_satisfy:
-      return does_given_equation_satisfy_forumla_lhs_structure(equation, formula_lhs)
-    # transform the equation as a whole aka perform the transformation operation on the entire thing and not only on a certain part of the equation
-    def formula_apply_root(formula):
-        nonlocal variable_list
-        if formula.name in variable_list.keys():
-            return variable_list[formula.name] # fill the extracted data on the formula rhs structure
-        data_to_return = TreeNode(formula.name, None) # produce nodes for the new transformed equation
-        for child in formula.children:
-            data_to_return.children.append(formula_apply_root(copy.deepcopy(child))) # slowly build the transformed equation
-        return data_to_return
-    count_target_node = 1
-    # try applying formula on various parts of the equation
-    def formula_apply_various_sub_equation(equation, formula_lhs, formula_rhs, do_only_arithmetic):
-        global all_angles
-        
-        nonlocal variable_list
-        nonlocal count_target_node
-        data_to_return = TreeNode(equation.name, children=[])
-        variable_list = {}
-        if do_only_arithmetic == False:
-            if does_given_equation_satisfy_forumla_lhs_structure(equation, copy.deepcopy(formula_lhs)) is True: # if formula lhs structure is satisfied by the equation given
-                count_target_node -= 1
-                if count_target_node == 0: # and its the location we want to do the transformation on
-                    return formula_apply_root(copy.deepcopy(formula_rhs)) # transform
-        else: # perform arithmetic
-            if True: # if only numbers
-                if equation.name == "f_xangle" and print_angle_3(equation.children[0].name[2:]+equation.children[1].name[2:]+equation.children[2].name[2:]) in all_angles:
-                    count_target_node -= 1
-                    if count_target_node == 0: # if its the location we want to perform arithmetic on
-                        return tree_form(str_form(equation).replace("f_xangle", "f_angle"))
-                        
-                elif equation.name == "f_xline":
-                    a, b = equation.children[0].name[2:], equation.children[1].name[2:]
-                    if (a2n(a),a2n(b)) in point_pairs or (a2n(b),a2n(a)) in point_pairs:
-                        count_target_node -= 1
-                        if count_target_node == 0:
-                            return tree_form(str_form(equation).replace("f_xline", "f_line")) 
-                    new = [x for x in all_angles if (x[0] == a and x[2] == b) or (x[0] == b and x[2] == a)]
-                    if any(straight_line([a2n(y) for y in x]) for x in new):
-                        count_target_node -= 1
-                        if count_target_node == 0:
-                            return tree_form(str_form(equation).replace("f_xline", "f_line"))
-                elif equation.name == "f_xparallel":
-                    a = line_fx(line_sort(equation.children[0].children[0].name[2:] + equation.children[0].children[1].name[2:]))
-                    b = line_fx(line_sort(equation.children[1].children[0].name[2:] + equation.children[1].children[1].name[2:]))
-                    p1 = str_form(TreeNode("f_parallel", [a, b]))
-                    p2 = str_form(TreeNode("f_parallel", [b, a]))
-                    if p1 in eq_list or p2 in eq_list:
-                        count_target_node -= 1
-                        if count_target_node == 0:
-                            return tree_form("d_true")
-                elif equation.name == "f_exist" and "f_x" not in str_form(equation.children[0]): # power should be two or a natural number more than two
-                    count_target_node -= 1
-                    if count_target_node == 0:
-                        return tree_form("d_true")
-                elif equation.name == "f_eq" and "f_x" not in str_form(equation):
-                    if "angle" in str_form(equation):
-                        a = print_angle_3(equation.children[0].children[0].name[2:] + equation.children[0].children[1].name[2:] + equation.children[0].children[2].name[2:])
-                        b = print_angle_3(equation.children[1].children[0].name[2:] + equation.children[1].children[1].name[2:] + equation.children[1].children[2].name[2:])
-                        try:
-                            row = [0]*len(all_angles)
-                            row[all_angles.index(a)] = 1
-                            row[all_angles.index(b)] = -1
-                            row_2 = [0]*len(all_angles)
-                            row_2[all_angles.index(a)] = -1
-                            row_2[all_angles.index(b)] = 1
-                            if (row in convert_to_int(matrix) and convert_to_int(matrix_eq)[convert_to_int(matrix).index(row)] == 0) or\
-                               (row_2 in convert_to_int(matrix) and convert_to_int(matrix_eq)[convert_to_int(matrix).index(row_2)] == 0):
-                                count_target_node -= 1
-                                if count_target_node == 0:
-                                    return tree_form("d_true")
-                        except:
-                            pass
-                    else:
-                        a = line_sort(equation.children[0].children[0].name[2:] + equation.children[0].children[1].name[2:])
-                        b = line_sort(equation.children[1].children[0].name[2:] + equation.children[1].children[1].name[2:])
-                        a = index_line(*a)
-                        b = index_line(*b)
-                        row = [0]*len(line_counter)
-                        row[a] = 1
-                        row[b] = -1
-                        row_2 = [0]*len(line_counter)
-                        row_2[a] = -1
-                        row_2[b] = 1
-                        fix_line_matrix()
-                        if row in convert_to_int(line_matrix) or row_2 in convert_to_int(line_matrix):
-                            count_target_node -= 1
-                            if count_target_node == 0:
-                                return tree_form("d_true")
-        if node_type(equation.name) in {"d_", "v_"}: # reached a leaf node
-            return equation
-        for child in equation.children: # slowly build the transformed equation
-            data_to_return.children.append(formula_apply_various_sub_equation(copy.deepcopy(child), formula_lhs, formula_rhs, do_only_arithmetic))
-        return data_to_return
-    cn = 0
-    # count how many locations are present in the given equation
-    def count_nodes(equation):
-        nonlocal cn
-        cn += 1
-        for child in equation.children:
-            count_nodes(child)
-    transformed_equation_list = []
-    count_nodes(equation)
-    for i in range(1, cn + 1): # iterate over all location in the equation tree
-        count_target_node = i
-        orig_len = len(transformed_equation_list)
-        tmp = formula_apply_various_sub_equation(equation, formula_lhs, formula_rhs, do_only_arithmetic)
-        if str_form(tmp) != str_form(equation): # don't produce duplication, or don't if nothing changed because of transformation impossbility in that location
-            transformed_equation_list.append(str_form(tmp)) # add this transformation to our list
-    return transformed_equation_list 
 def flatten_tree(node):
     if not node.children:
         return node
@@ -195,14 +56,7 @@ def flatten_tree(node):
     else:
         node.children = [flatten_tree(child) for child in node.children]
         return node
-def convert_to_int(matrix):
-    # Check if the matrix is 1D or 2D
-    if isinstance(matrix[0], list):
-        # If it's 2D, convert each element in each row
-        return [[int(element) for element in row] for row in matrix]
-    else:
-        # If it's 1D, convert each element directly
-        return [int(element) for element in matrix]
+    
 def convert_angle_straight(angle_list, val):
     if len(angle_list) == 1:
         return str_form(TreeNode("f_eq", [convert_angle(angle_list[0]), tree_form("d_"+str(val))]))
@@ -234,8 +88,7 @@ def index_line_matrix(index):
     global line_counter
     a, b = line_counter[index]
     return line_sort(n2a(a)+n2a(b))
-#def all_int(lst):
-    
+
 def convert_line(line1, line2, line_add):
     return str_form(TreeNode("f_eq", [TreeNode("f_add", [line_fx(line1), line_fx(line2)]), line_fx(line_add)]))
 def convert_line_eq(line1, line2):
@@ -257,69 +110,6 @@ def convert_angle(angle):
     angle = print_angle_3(angle)
     return TreeNode("f_angle", [tree_form("d_"+angle[0]), tree_form("d_"+angle[1]), tree_form("d_"+angle[2])])
 
-# Function to generate neighbor equations
-def generate_transformation(equation, file_name):
-    input_f, output_f = return_formula_file(file_name) # load formula file
-    transformed_equation_list = []
-    for i in range(len(input_f)): # go through all formulas and collect if they can possibly transform
-        transformed_equation_list += apply_individual_formula_on_given_equation(tree_form(copy.deepcopy(equation)), copy.deepcopy(input_f[i]), copy.deepcopy(output_f[i]))
-    return list(set(transformed_equation_list)) # set list to remove duplications
-
-# Function to generate neighbor equations
-def generate_arithmetical_transformation(equation):
-    transformed_equation_list = []
-    transformed_equation_list += apply_individual_formula_on_given_equation(tree_form(equation), None, None, True) # perform arithmetic
-    return list(set(transformed_equation_list)) # set list to remove duplications
-
-# Function to read formula file
-def return_formula_file(file_name):
-    with open(file_name, 'r') as file:
-      content = file.read()
-    x = content.split("\n\n")
-    input_f = [x[i] for i in range(0, len(x), 2)] # alternative formula lhs and then formula rhs
-    output_f = [x[i] for i in range(1, len(x), 2)]
-    #for i in range(len(input_f)):
-    #    print(string_equation(input_f[i]) + " = " + string_equation(output_f[i]))
-    input_f = [tree_form(item) for item in input_f] # convert into tree form
-    output_f = [tree_form(item) for item in output_f]
-    
-    return [input_f, output_f] # return
-
-def search(equation, depth, file_list, auto_arithmetic=True, visited=None):
-    if depth == 0: # limit the search
-        return None
-    if visited is None:
-        visited = set()
-    equation = fix_angle_line(equation)
-    print_text(string_equation(equation))
-    if equation in visited:
-        return None
-    visited.add(equation)
-    output =[]
-    if file_list[0]:
-      output += generate_transformation(equation, file_list[0])
-    if auto_arithmetic:
-      output += generate_arithmetical_transformation(equation)
-    if len(output) > 0:
-      if depth == 1:
-        depth += 1
-      output = [output[0]]
-    else:
-      if file_list[1]:
-        output += generate_transformation(equation, file_list[1])
-      if not auto_arithmetic:
-        output += generate_arithmetical_tran
-        sformation(equation)
-      if file_list[2] and len(output) == 0:
-          output += generate_transformation(equation, file_list[2])
-    for i in range(len(output)):
-        result = search(output[i], depth-1, file_list, auto_arithmetic, visited) # recursively find even more equals
-        if result is not None:
-            output += result # hoard them
-    output = list(set(output))
-    return output
-
-# fancy print
 def string_equation_helper(equation_tree):
     if equation_tree.children == []:
         return equation_tree.name # leaf node
@@ -353,29 +143,38 @@ def line_eq(line1, line2):
         return True
     line1 = a2n(line1[0]), a2n(line1[1])
     line2 = a2n(line2[0]), a2n(line2[1])
-    row = [0]*len(line_counter)
-    row[line_counter.index(line1)] = 1
-    row[line_counter.index(line2)] = -1
-    if row in convert_to_int(line_matrix):
+    row = [Fraction(0)]*len(line_counter)
+    row[line_counter.index(line1)] = Fraction(1)
+    row[line_counter.index(line2)] = Fraction(-1)
+    if row in line_matrix:
         return True
-    row[line_counter.index(line1)] = -1
-    row[line_counter.index(line2)] = 1
-    if row in convert_to_int(line_matrix):
+    row[line_counter.index(line1)] = Fraction(-1)
+    row[line_counter.index(line2)] = Fraction(1)
+    if row in line_matrix:
         return True
     return False
 def angle_eq(angle1, angle2):
     if angle1 == angle2:
         return True
-    row = [0]*len(all_angles)
-    row[all_angles.index(angle1)] = 1
-    row[all_angles.index(angle2)] = -1
-    if row in convert_to_int(matrix) and int(matrix_eq[convert_to_int(matrix).index(row)]) == 0:
+    
+    row = [Fraction(0)]*len(all_angles)
+    row[all_angles.index(angle1)] = Fraction(1)
+    row[all_angles.index(angle2)] = Fraction(-1)
+    if row in matrix and matrix_eq[matrix.index(row)] == Fraction(0):
         return True
-    row[all_angles.index(angle1)] = -1
-    row[all_angles.index(angle2)] = 1
-    if row in convert_to_int(matrix) and int(matrix_eq[convert_to_int(matrix).index(row)]) == 0:
+    row[all_angles.index(angle1)] = Fraction(-1)
+    row[all_angles.index(angle2)] = Fraction(1)
+    if row in matrix and matrix_eq[matrix.index(row)] == Fraction(0):
         return True
     return False
+
+def angle_per(angle):
+    row = [Fraction(0)]*len(all_angles)
+    row[all_angles.index(angle)] = Fraction(1)
+    if row in matrix and matrix_eq[matrix.index(row)] == Fraction(90):
+        return True
+    return False
+
 
 def line_counter_convert():
     output = []
@@ -385,8 +184,7 @@ def line_counter_convert():
 
 def sss_rule(a1,a2,a3, b1,b2,b3):
     line = [line_sort(a1+a2), line_sort(b1+b2), line_sort(a2+a3), line_sort(b2+b3), line_sort(a1+a3), line_sort(b1+b3)]
-    #print(line)
-    #print(line_counter)
+
     for item in line:
         if item not in line_counter_convert():
             return False
@@ -395,39 +193,53 @@ def sss_rule(a1,a2,a3, b1,b2,b3):
 def sas_rule(a1,a2,a3, b1,b2,b3):
     line = [line_sort(a1+a2), line_sort(b1+b2), line_sort(a2+a3), line_sort(b2+b3)]
     angle = [print_angle_3(a1+a2+a3), print_angle_3(b1+b2+b3)]
-
-    if set(a1+a2+a3+b1+b2+b3) == set("CDABEC") and line_eq(line[0], line[1]):
-        print("hi3" + angle[0] + " " + angle[1] + " " + line[2] + " " + line[3])
-    
+       
     for item in line:
         if item not in line_counter_convert():
             return False
     for item in angle:
         if item not in all_angles:
-            #print(angle)
+            
             return False
     
     return line_eq(line[0], line[1]) and angle_eq(angle[0], angle[1]) and line_eq(line[2], line[3])
 def aas_rule(a1,a2,a3, b1,b2,b3):
-    line = [line_sort(a1+a2), line_sort(b1+b2), line_sort(a1+a3), line_sort(b1+b3)]
+    line = [line_sort(a2+a3), line_sort(b2+b3)]
     angle = [print_angle_3(a1+a2+a3), print_angle_3(b1+b2+b3), print_angle_3(a3+a1+a2), print_angle_3(b3+b1+b2)]
+    
     for item in line:
         if item not in line_counter_convert():
             return False
+        
     for item in angle:
-        if angle not in all_angles:
+        if item not in all_angles:
             return False
-    return line_eq(line[0], line[1]) and angle_eq(angle[0], angle[1]) and angle_eq(line[2], line[3])
+    
+    return line_eq(line[0], line[1]) and angle_eq(angle[0], angle[1]) and angle_eq(angle[2], angle[3])
+
+def rhs_rule(a1, a2, a3, b1, b2, b3):
+    line = [line_sort(a1+a2), line_sort(b1+b2), line_sort(a1+a3), line_sort(b1+b3)]
+    angle = [print_angle_3(a1+a2+a3), print_angle_3(b1+b2+b3)]
+    
+    for item in line:
+        if item not in line_counter_convert():
+            return False
+    
+    for item in angle:
+        if item not in all_angles:
+            return False
+        
+    return line_eq(line[0], line[1]) and angle_eq(angle[0], angle[1]) and line_eq(line[2], line[3]) and angle_per(angle[0])
 def proof_fx_3(angle1, angle2):
     global eq_list
-    #print(angle1, angle2)
+    
     angle_1 = TreeNode("f_triangle", [tree_form("d_"+angle1[0]), tree_form("d_"+angle1[1]), tree_form("d_"+angle1[2])])
     angle_2 = TreeNode("f_triangle", [tree_form("d_"+angle2[0]), tree_form("d_"+angle2[1]), tree_form("d_"+angle2[2])])
     eq = TreeNode("f_congruent", [angle_1, angle_2])
     eq = str_form(eq)
     
     for angle in [angle1+angle2, angle2+angle1]:
-        if sss_rule(*angle) or sas_rule(*angle) or aas_rule(*angle):
+        if sss_rule(*angle) or sas_rule(*angle) or aas_rule(*angle) or rhs_rule(*angle):
             eq_list.append(fix_angle_line(eq))
             do_cpct()
             return eq
@@ -446,206 +258,214 @@ def proof_fx(eq):
             return eq
     return None
 
-def proof_fx_2(eq):
+def add_angle_equality(h1, h2):
+    h1 = print_angle_3(h1)
+    h2 = print_angle_3(h2)
+    if h1 == h2:
+        return
+    row = [Fraction(0)]*len(all_angles)
+    row[all_angles.index(h1)] = Fraction(1)
+    row[all_angles.index(h2)] = Fraction(-1)
+    matrix.append(row)
+    matrix_eq.append(Fraction(0))
+
+def add_line_equality(h1, h2):
+    if line_sort(h1) == line_sort(h2):
+        return
+    row = [Fraction(0)]*(2+len(line_counter))
+    
+    row[index_line(*h1)] = Fraction(1)
+    row[index_line(*h2)] = Fraction(-1)
+    line_matrix.append(row)
+    fix_line_matrix()
+
+def proof_fx_2(a, b):
     global eq_list
     global matrix
     global matrix_eq
-    #final
-    output = search(eq, 7, [None, "formula-list-9/j.txt", None])
-    for item in output:
-        if "f_parallel" not in item and "f_if" not in item:
-            item = convert_form(item)
-            if eq:
-                m, meq = find_all(item, len(all_angles))
-                matrix.append(m)
-                matrix_eq.append(meq)
-    return None
-
+    global alter
+    u, v = a, b
+    for item in itertools.combinations(point_pairs, 2):
+        if len(set([item[0][0], item[0][1], item[1][0], item[1][1]])) == 4:
+            for item2 in itertools.product(item[0], item[1]):
+                if line_sort(n2a(item2[0])+n2a(item2[1])) in line_counter_convert() and line_sort(n2a(item2[0])+n2a(item2[1])) != line_sort(u) and\
+                   line_sort(n2a(item2[0])+n2a(item2[1])) != line_sort(v):
+                    c = None
+                    d = None
+                    if item[0][0] in item2:
+                        c = item[0][1]
+                    if item[0][1] in item2:
+                        c = item[0][0]
+                    if item[1][0] in item2:
+                        d = item[1][1]
+                    if item[1][1] in item2:
+                        d = item[1][0]
+                    a, b = item2
+                    if (is_same_line(line_sort(n2a(a)+n2a(c)), line_sort(u)) and is_same_line(line_sort(n2a(b)+n2a(d)), line_sort(v))) or\
+                       (is_same_line(line_sort(n2a(a)+n2a(c)), line_sort(v)) and is_same_line(line_sort(n2a(b)+n2a(d)), line_sort(u))):
+                        tmp = find_intersection_3(points[c][0], points[c][1], points[d][0], points[d][1], points[a][0], points[a][1], points[b][0], points[b][1])
+                        if tmp[1] == "intersect":
+                            add_angle_equality(n2a(c)+n2a(a)+n2a(b), n2a(d)+n2a(b)+n2a(a))
+                
 import math
 import numpy as np
-def find_circle_center_radius(points):
-    # This function is predefined and kept unchanged
-    return (150, 200), 10
-
-def find_intersections(lines, circle_center, radius):
-    h, k = circle_center
-    r = radius
-    intersections = []
-
-    def line_circle_intersections(x1, y1, x2, y2):
-        # Calculate line coefficients
-        dx = x2 - x1
-        dy = y2 - y1
-        A = dx**2 + dy**2
-        B = 2 * (dx * (x1 - h) + dy * (y1 - k))
-        C = (x1 - h)**2 + (y1 - k)**2 - r**2
-        
-        discriminant = B**2 - 4 * A * C
-        
-        if discriminant < 0:
-            return []  # No intersection
-
-        sqrt_discriminant = math.sqrt(discriminant)
-        t1 = (-B + sqrt_discriminant) / (2 * A)
-        t2 = (-B - sqrt_discriminant) / (2 * A)
-
-        points = []
-        for t in (t1, t2):
-            if 0 <= t <= 1:
-                ix = x1 + t * dx
-                iy = y1 + t * dy
-                points.append((ix, iy))
-        
-        return points
-    final = []
-    for line in lines:
-        (x1, y1), (x2, y2) = line
-        
-        if (x1, y1) == circle_center:
-            x3, y3 = x2, y2
-        elif (x2, y2) == circle_center:
-            x3, y3 = x1, y1
-        else:
-            continue
-        final.append((x3, y3))
-        intersections.extend(line_circle_intersections(x1, y1, x2, y2))
-
-    return list(zip(intersections, final))
-
-def sort_points_anticlockwise(points, center):
-    h, k = center
-
-    def angle_from_center(point):
-        point = point[0]
-        return math.atan2(point[1] - k, point[0] - h)
-    
-    return sorted(points, key=angle_from_center)
 
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
-def draw_points_and_lines(points, lines, image_size=(1000, 1000), point_radius=5, point_color=(0, 0, 0), line_color=(255, 0, 0)):
+def draw_points_and_lines(points, lines, image_size=(1500, 1500), point_radius=5, point_color=(0, 0, 0), line_color=(255, 0, 0)):
     # Create a white image
     image = Image.new('RGB', image_size, color='white')
     draw = ImageDraw.Draw(image)
 
     # Draw points
     for x, y in points:
-        draw.ellipse((x - point_radius, y - point_radius, x + point_radius, y + point_radius), fill=point_color)
+        draw.ellipse((float(x - point_radius), float(y - point_radius), float(x + point_radius), float(y + point_radius)), fill=point_color)
 
     # Draw lines
     for (x1, y1), (x2, y2) in lines:
-        draw.line([(x1, y1), (x2, y2)], fill=line_color, width=2)
+        draw.line([(float(x1), float(y1)), (float(x2), float(y2))], fill=line_color, width=2)
 
     return image
-def is_number(s):
+
+
+def find_intersection(x1, y1, x2, y2, x3, y3, x4, y4):
     try:
-        float(s)  # Convert to float
-        return True
-    except ValueError:
-        return False
-def compare_trees(tree1, tree2):
-    # If both nodes are integers or floats, compare them as floats
-    if tree1.name[:2] == "d_" and tree2.name[:2] == "d_" and is_number(tree1.name[2:]) and is_number(tree2.name[2:]):
-        return abs(float(tree1.name[2:])-float(tree2.name[2:])) < 0.001
-    
-    # If one of the nodes is not a number, or the names are not equal, return False
-    if tree1.name != tree2.name:
-        return False
-    
-    # If the number of children is not the same, return False
-    if len(tree1.children) != len(tree2.children):
-        return False
-    
-    # Recursively compare all children of both trees
-    for child1, child2 in zip(tree1.children, tree2.children):
-        if not compare_trees(child1, child2):
-            return False
-    
-    # If all checks passed, the trees are equal
-    return True
-def remove_duplicate_trees(tree_list):
-    unique_trees = []
-    
-    for tree in tree_list:
-        # Check if the current tree is already in unique_trees using compare_trees
-        is_duplicate = any(compare_trees(tree, unique_tree) for unique_tree in unique_trees)
+        if x1 == x2:  # Line 1 is vertical
+            if x3 == x4:  # Line 2 is also vertical
+                return None, "parallel vertical lines"
+            m2 = (y4 - y3) / (x4 - x3) if x4 != x3 else None  # Check if line 2 is vertical
+            x = x1  # x-coordinate of intersection is the same for both vertical lines
+            y = m2 * x + (y3 - m2 * x3) if m2 is not None else None  # Get y-coordinate using line 2 equation
+            return (x, y), "intersect" if y is not None else "no intersection"
         
-        # If no duplicate is found, add the tree to the unique list
-        if not is_duplicate:
-            unique_trees.append(tree)
+        if x3 == x4:  # Line 2 is vertical
+            m1 = (y2 - y1) / (x2 - x1)
+            x = x3
+            y = m1 * x + (y1 - m1 * x1)
+            return (x, y), "intersect"
+        
+        m1 = (y2 - y1) / (x2 - x1) if x2 != x1 else None  # Slope of line 1
+        m2 = (y4 - y3) / (x4 - x3) if x4 != x3 else None  # Slope of line 2
+
+        if m1 == m2:  # Lines are parallel
+            return None, "parallel lines"
+
+        if m1 is None:  # Line 1 is vertical
+            x = x1
+            y = m2 * x + (y3 - m2 * x3)
+        elif m2 is None:  # Line 2 is vertical
+            x = x3
+            y = m1 * x + (y1 - m1 * x1)
+        else:
+            # Normal case for non-vertical, non-parallel lines
+            a = m1
+            b = y1 - m1 * x1
+            c = m2
+            d = y3 - m2 * x3
+            x = (d - b) / (a - c)
+            y = a * x + b
+        
+        return (x, y), "intersect"
+    except:
+        return None, "error"
+
+
+import matplotlib.pyplot as plt
+
+# Function to plot two lines given 8 numbers (4 points)
+def plot_lines(x1, y1, x2, y2, x3, y3, x4, y4):
+    # Convert to float if values are Fractions
+    x1, y1 = float(x1), float(y1)
+    x2, y2 = float(x2), float(y2)
+    x3, y3 = float(x3), float(y3)
+    x4, y4 = float(x4), float(y4)
     
-    return unique_trees
-def line_intersection(p1, p2, q1, q2, epsilon=0.1):
-    """Find the intersection point of two line segments (p1p2 and q1q2), handling precision issues."""
-
-    def is_near_zero(x):
-        """Check if a value is close to zero."""
-        return abs(x) < epsilon
-
-    def is_between(a, b, c):
-        """Check if point b is between points a and c."""
-        return (min(a[0], c[0]) <= b[0] <= max(a[0], c[0]) and
-                min(a[1], c[1]) <= b[1] <= max(a[1], c[1]))
-
-    A, B, C, D = p1, p2, q1, q2
-
-    def line_params(p1, p2):
-        """Calculate line parameters A, B, C for the line equation Ax + By = C."""
-        A = p2[1] - p1[1]
-        B = p1[0] - p2[0]
-        C = A * p1[0] + B * p1[1]
-        return A, B, C
-
-    # Line 1 parameters
-    A1, B1, C1 = line_params(A, B)
-    # Line 2 parameters
-    A2, B2, C2 = line_params(C, D)
-
-    # Calculate the determinant
-    det = A1 * B2 - A2 * B1
-
-    if is_near_zero(det):
-        return None  # Lines are parallel or coincident
-
-    # Calculate intersection point
-    x = (B2 * C1 - B1 * C2) / det
-    y = (A1 * C2 - A2 * C1) / det
-    intersect = (x, y)
-
-    # Ensure the intersection point is within both line segments
-    if is_between(A, intersect, B) and is_between(C, intersect, D):
-        return intersect
-
-    return None
+    # Plot the two lines
+    plt.figure(figsize=(6,6))
+    
+    # Line 1
+    plt.plot([x1, x2], [y1, y2], label="Line 1", color="blue")
+    
+    # Line 2
+    plt.plot([x3, x4], [y3, y4], label="Line 2", color="red")
+    
+    # Mark the points
+    plt.scatter([x1, x2], [y1, y2], color="blue")
+    plt.scatter([x3, x4], [y3, y4], color="red")
+    
+    # Add annotations for the points
+    plt.text(x1, y1, f"({x1}, {y1})", fontsize=12, ha='right')
+    plt.text(x2, y2, f"({x2}, {y2})", fontsize=12, ha='left')
+    plt.text(x3, y3, f"({x3}, {y3})", fontsize=12, ha='right')
+    plt.text(x4, y4, f"({x4}, {y4})", fontsize=12, ha='left')
+    
+    # Labels and Title
+    plt.title('Line Segments')
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    
+    # Show grid
+    plt.grid(True)
+    
+    # Display the plot
+    plt.legend()
+    plt.show()
 
 
+def find_intersection_3(x1, y1, x2, y2, x3, y3, x4, y4):
+    # Check if any lines are vertical (undefined slope)
+    if x2 == x1 and x4 == x3:
+        return None, "error"  # Both lines are vertical, parallel but no intersection
+    elif x2 == x1:  # First line is vertical
+        x = x1
+        m2 = (y4 - y3) / (x4 - x3)
+        d = y3 - m2 * x3
+        y = m2 * x + d
+    elif x4 == x3:  # Second line is vertical
+        x = x3
+        m1 = (y2 - y1) / (x2 - x1)
+        b = y1 - m1 * x1
+        y = m1 * x + b
+    else:
+        # Compute slopes
+        m1 = (y2 - y1) / (x2 - x1)
+        m2 = (y4 - y3) / (x4 - x3)
 
+        # Check if lines are parallel (same slope)
+        if m1 == m2:
+            return None, "error"  # Parallel lines do not intersect
 
-def round_point(point, precision=1):
-    """Round a point to a given precision."""
-    return (round(point[0] / precision) * precision, round(point[1] / precision) * precision)
+        # Calculate intersection point
+        a = m1
+        b = y1 - m1 * x1
+        c = m2
+        d = y3 - m2 * x3
+        x = (d - b) / (a - c)
+        y = a * x + b
 
+    # Check if the intersection point is within the bounds of both line segments
+    def is_within(x1, x2, x):
+        return min(x1, x2) <= x <= max(x1, x2)
+
+    if is_within(x1, x2, x) and is_within(y1, y2, y) and is_within(x3, x4, x) and is_within(y3, y4, y):
+        return (x, y), "intersect"
+    return None, "error"
+
+    
 def find_intersections_2(points, point_pairs):
-    """Find all unique intersection points of the line segments not in the points list."""
-    intersections = set()
-    
-    for i in range(len(point_pairs)):
-        p1 = points[point_pairs[i][0]]
-        p2 = points[point_pairs[i][1]]
-        for j in range(len(point_pairs)):
-            if i != j:
-                q1 = points[point_pairs[j][0]]
-                q2 = points[point_pairs[j][1]]
-                if p1 != q1 and p1 != q2 and p2 != q1 and p2 != q2:
-                    intersect = line_intersection(p1, p2, q1, q2)
-                    if intersect:
-                        rounded_intersect = round_point(intersect)
-                        intersections.add(rounded_intersect)
-
-    #print(intersections)
-    # Filter out intersections that are already in the points list
-    filtered_intersections = [point for point in intersections if round_point(point) not in map(round_point, points)]
-    
+    #print(points)
+    intersections = []
+    for item in itertools.combinations(point_pairs, 2):
+        x1, y1 = points[item[0][0]]
+        x2, y2 = points[item[0][1]]
+        x3, y3 = points[item[1][0]]
+        x4, y4 = points[item[1][1]]
+        tmp = find_intersection_3(x1, y1, x2, y2, x3, y3, x4, y4)
+        if tmp[1] == "intersect":
+            intersections.append(tmp[0])
+    #print(intersections)       
+    filtered_intersections = [point for point in intersections if point not in points]
+    #print(filtered_intersections)
     return filtered_intersections
 
 
@@ -673,42 +493,112 @@ matrix = []
 matrix_eq = []
 line_matrix = []
 import itertools
-def surrounding_angle(point_name):
+
+import matplotlib.pyplot as plt
+
+def convert_to_float(points):
+    return [(float(x), float(y)) for x, y in points]
+
+def plot_lines(x1, y1, x2, y2, x3, y3, x4, y4):
+    # Convert Fraction points to float for plotting
+    line1 = convert_to_float([(x1, y1), (x2, y2)])
+    line2 = convert_to_float([(x3, y3), (x4, y4)])
+
+    # Plotting the first line (extended)
+    plt.plot([line1[0][0], line1[1][0]], [line1[0][1], line1[1][1]], 'b', label="Line 1 (extended)", linestyle='--')
+    
+    # Plotting the second line segment
+    plt.plot([line2[0][0], line2[1][0]], [line2[0][1], line2[1][1]], 'r', label="Line 2 (segment)", linestyle='-')
+    
+    # Plotting the points
+    plt.scatter([line1[0][0], line1[1][0]], [line1[0][1], line1[1][1]], color='blue', zorder=5, label="Points on Line 1")
+    plt.scatter([line2[0][0], line2[1][0]], [line2[0][1], line2[1][1]], color='red', zorder=5, label="Points on Line 2")
+    
+    # Display the legend
+    plt.legend()
+    
+    # Set equal scaling
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    # Add labels and grid for clarity
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.grid(True)
+    
+    # Show the plot
+    plt.show()
+
+def find_intersection_line_with_segment(x1, y1, x2, y2, x3, y3, x4, y4):
+    def is_within(x1, x2, x):
+        return min(x1, x2) <= x <= max(x1, x2)
+    ans = find_intersection(x1, y1, x2, y2, x3, y3, x4, y4)
+    output = False
+    if ans[1] == "intersect" and is_within(x3, x4, ans[0][0]) and is_within(y3, y4, ans[0][1]):
+        output = True
+    global alter
+    #if alter:
+        #print(output)
+        #plot_lines(x1, y1, x2, y2, x3, y3, x4, y4)
+    
+    return output
+
+
+def polygon_area(points):
+    n = len(points)
+    area = Fraction(0)
+    for i in range(n - 1):
+        area += points[i][0] * points[i + 1][1] - points[i][1] * points[i + 1][0]
+    area += points[-1][0] * points[0][1] - points[-1][1] * points[0][0]
+    return abs(area) / 2
+
+def surrounding_angle(given_point):
+    def is_enclosed_angle(curr, h1, h2, h3):
+        return find_intersection_line_with_segment(curr[0], curr[1], h2[0], h2[1], h1[0], h1[1], h3[0], h3[1])
+
+    # Gather the list of points connected to the given_point
+    lst = []
+    for line in point_pairs:
+        if given_point == line[0]:
+            lst.append(points[line[1]])
+        elif given_point == line[1]:
+            lst.append(points[line[0]])
+
+    
+    for item in itertools.permutations(lst):
+        if all(is_enclosed_angle(points[given_point], item[i], item[i+1], item[i+2]) for i in range(0, len(item)-2, 1)):
+            lst = list(item)
+            break
+    # Convert points back to their original indices
+    tmp = [points.index(x) for x in lst]
+    #print(given_point, tmp)
+    
+    return tmp
+
+
+def n2a(number):
+    return chr(number + ord('A'))
+def straight_line_2(point_list):
     global lines
     global points
     global point_pairs
-    global buffer_eq_list
-    curr = points[point_name]
-    radius = 20
-
-    # Find intersections of lines with the circle
-    intersections = find_intersections(lines, curr, radius)
-    #print(intersections)
-    # Sort intersections in anti-clockwise order
-    sorted_intersections = sort_points_anticlockwise(intersections, curr)
-
-    return [points.index(x[1]) for x in sorted_intersections]
-def calculate_triangle_area(point_list):
-    (x1, y1), (x2, y2), (x3, y3) = point_list
-    area = abs(x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2)) / 2
-    return area
-def n2a(number):
-    return chr(number + ord('A'))
+    point_list = [a2n(x) for x in point_list]
+    tmp = polygon_area([points[x] for x in point_list])
+    return tmp == Fraction(0)
 def straight_line(point_list):
     global lines
     global points
     global point_pairs
-    tmp = calculate_triangle_area([points[x] for x in point_list])
-    #print(tmp)
-    return tmp < 100
-def draw_points_and_lines(points, lines, image_size=(1000, 1000), point_radius=5, point_color=(0, 0, 0), line_color=(255, 0, 0), text_color=(0, 0, 0)):
+    tmp = polygon_area([points[x] for x in point_list])
+    
+    return tmp == Fraction(0)
+def draw_points_and_lines(points, lines, image_size=(1500, 1500), point_radius=5, point_color=(0, 0, 0), line_color=(255, 0, 0), text_color=(0, 0, 0)):
     # Create a white image
     image = Image.new('RGB', image_size, color='white')
     draw = ImageDraw.Draw(image)
     
     # Optionally, load a font for text (adjust the path and size as needed)
     try:
-        font = ImageFont.truetype("arial.ttf", 32)  # You can replace "arial.ttf" with the path to any TTF font file
+        font = ImageFont.truetype("arial.ttf", 48)  # You can replace "arial.ttf" with the path to any TTF font file
     except IOError:
         font = ImageFont.load_default()
 
@@ -771,7 +661,7 @@ def travel_till_end(start, step):
             if straight_line([step, start, item]) and item not in step_taken and start != item and step != start and step != item:
                 step_taken.append(item)
                 step = item
-                #print(n2a(step))       
+                
                 done = False
                 break
     return step
@@ -792,7 +682,7 @@ def print_angle(a, b, c, a_do=True, c_do=True):
     global lines
     global points
     global point_pairs
-    #print(n2a(a), n2a(b), n2a(c))
+    
     if a_do:
         a = travel_till_end(b, a)
     else:
@@ -803,7 +693,7 @@ def print_angle(a, b, c, a_do=True, c_do=True):
     else:
         c = travel_till_end(b, c)
         c = travel_till_end(b, c)
-    #print(n2a(a), n2a(b), n2a(c))
+        
     m, n = sorted([a, c])
     return n2a(m) + n2a(b) + n2a(n)
 def print_angle_2(angle, a_do=True, c_do=True):
@@ -817,7 +707,7 @@ def print_angle_3(angle):
     return sorted(lst, key=lambda x: sur(x))[0]
 def print_angle_4(a, b, c):
     return print_angle_3(n2a(a)+n2a(b)+n2a(c))
-#combine
+
 def combine(a, b):
     global lines
     global points
@@ -834,25 +724,7 @@ def combine(a, b):
     out = print_angle_3(r[0] + b[1] + r[1])
     #out = print_angle_2(out)
     return out
-def calculate_angle(angle):
-    global lines
-    global points
-    global point_pairs
-    A = points[a2n(angle[0])]
-    O = points[a2n(angle[1])]
-    B = points[a2n(angle[2])]
-    x_A, y_A = A
-    x_O, y_O = O
-    x_B, y_B = B
-    vector_OA = (x_A - x_O, y_A - y_O)
-    vector_OB = (x_B - x_O, y_B - y_O)
-    dot_product = vector_OA[0] * vector_OB[0] + vector_OA[1] * vector_OB[1]
-    magnitude_OA = math.sqrt(vector_OA[0]**2 + vector_OA[1]**2)
-    magnitude_OB = math.sqrt(vector_OB[0]**2 + vector_OB[1]**2)
-    cos_theta = dot_product / (magnitude_OA * magnitude_OB)
-    angle_radians = math.acos(cos_theta)
-    angle_degrees = math.degrees(angle_radians)
-    return angle_degrees
+
 def angle_sort(angle):
     if a2n(angle[0]) > a2n(angle[2]):
         angle = angle[2] + angle[1] + angle[0]
@@ -862,113 +734,73 @@ def line_sort(line):
         line = line[1] + line[0]
     return line
 all_angles = []
-import math_1
-import math_2
+
 def break_equation(equation):
     sub_equation_list = [equation]
     equation = equation
     for child in equation.children: # breaking equation by accessing children
         sub_equation_list += break_equation(child) # collect broken equations
     return sub_equation_list
-def find_constant(equation, target_var):
-    equation = do_zero_rhs(equation)
-    equation = str_form(TreeNode("f_dif", [tree_form(equation)]))
-    for i in range(30):
-        if i == target_var:
-            continue
-        equation = str_form(replace(tree_form(equation), tree_form("v_"+str(i)), tree_form("v_30")))
-    equation = str_form(replace(tree_form(equation), tree_form("v_"+str(target_var)), tree_form("v_0")))
-    output = math_1.search(equation, 10, ["single_equation_3.txt", None, None])
-    return round(float(sorted([x for x in output if "v_" not in x], key=lambda x: len(x))[0][2:]))
-def do_zero_rhs(equation):
-    output = math_1.search(equation, 5, ["single_equation_5.txt", None, None])
-    for item in [equation] + output:
-        if tree_form(item).name == "f_eq" and tree_form(item).children[1].name == "d_0":
-            return str_form(tree_form(item).children[0])
-def find_last(equation):
-    equation = do_zero_rhs(equation)
-    for i in range(30):
-        equation = str_form(replace(tree_form(equation), tree_form("v_"+str(i)), tree_form("d_0")))
-    output = math_1.search(equation, 5, [None, None, None])
-    return round(float(sorted([x for x in output if "v_" not in x], key=lambda x: len(x))[0][2:]))
 
-def find_all(equation, total_var):
-    row = []
-    for i in range(total_var):
-        row.append(find_constant(copy.deepcopy(equation),i))
-    tmp = find_last(equation)
-    return [row, tmp]
+def row_swap(matrix, i, j):
+    """ Swap row i with row j in the matrix. """
+    matrix[i], matrix[j] = matrix[j], matrix[i]
 
-def row_swap(matrix, row1, row2):
-    """ Swap two rows in the matrix. """
-    matrix[[row1, row2]] = matrix[[row2, row1]]
+def row_scale(matrix, i, scale_factor):
+    """ Scale row i by scale_factor. """
+    matrix[i] = [scale_factor * elem for elem in matrix[i]]
 
-def row_scale(matrix, row, scale):
-    """ Scale (multiply) a row by a non-zero scalar. """
-    matrix[row] *= scale
+def row_addition(matrix, src_row, dest_row, scale_factor):
+    """ Add scale_factor * src_row to dest_row. """
+    matrix[dest_row] = [
+        elem_dest + scale_factor * elem_src
+        for elem_dest, elem_src in zip(matrix[dest_row], matrix[src_row])
+    ]
 
-def row_addition(matrix, source_row, target_row, scale):
-    """ Add a multiple of one row to another row. """
-    matrix[target_row] += scale * matrix[source_row]
+def remove_zero_rows(matrix):
+    # Filter out rows that consist entirely of zeros
+    return [row for row in matrix if any(element != Fraction(0) for element in row)]
 
+# Gauss-Jordan Elimination for matrices with Fraction entries
 def gauss_jordan_elimination(matrix):
     """ Perform Gauss-Jordan elimination to transform the matrix into RREF. """
-    rows, cols = matrix.shape
+    rows = len(matrix)
+    cols = len(matrix[0])
     row = 0
-    
-    for col in range(cols - 1):  # Ignore the last column (augmented part)
+
+    for col in range(cols):  # Now we don't ignore the last column (augmented part)
         # Find the pivot row
-        pivot_row = np.argmax(np.abs(matrix[row:, col])) + row
-        
-        if matrix[pivot_row, col] == 0:
+        pivot_row = max(range(row, rows), key=lambda r: abs(matrix[r][col]))
+
+        if matrix[pivot_row][col] == 0:
             continue  # Skip this column if the pivot is zero
-        
+
         # Swap the current row with the pivot row
         if pivot_row != row:
             row_swap(matrix, row, pivot_row)
-        
+
         # Scale the pivot row
-        row_scale(matrix, row, 1 / matrix[row, col])
-        
+        row_scale(matrix, row, Fraction(1, matrix[row][col]))
+
         # Eliminate the current column entries in other rows
         for r in range(rows):
             if r != row:
-                row_addition(matrix, row, r, -matrix[r, col])
-        
+                row_addition(matrix, row, r, -matrix[r][col])
+
         row += 1
         if row >= rows:
             break
-    
-    return matrix
+
+    return remove_zero_rows(matrix)
 def matrix_to_list(matrix):
-    # Convert NumPy matrix to a nested list with rounded integers
-    if isinstance(matrix, np.ndarray):
-        if matrix.ndim > 1:
-            # Recursively convert each sub-array
-            return [matrix_to_list(sub_matrix) for sub_matrix in matrix]
-        else:
-            # Convert to a list and round each element
-            return [round(value) for value in matrix]
-    else:
-        # If it's not a NumPy array, assume it's already a list
-        return [round(value) for value in matrix]
-def detect_inconsistency(matrix):
-    matrix = gauss_jordan_elimination(matrix)
-    
-    for item in matrix_to_list(matrix):
-        if all(float(x)<0.01 for x in item[:-1]) and not(float(item[-1]) < 0.01):
-            return False
-    return True
-def unaugment_matrix(augmented_matrix):
-    num_cols = augmented_matrix.shape[1] - 1
-    A = augmented_matrix[:, :num_cols]
-    B = augmented_matrix[:, num_cols:]
-    return A, B
+    return [list(item) for item in matrix]
+
 def fix_matrix():
     global matrix
     for i in range(len(matrix)):
         if len(matrix[i]) < len(all_angles):
-            matrix[i] += [0]*(len(all_angles)-len(matrix[i]))
+            matrix[i] += [Fraction(0)]*(len(all_angles)-len(matrix[i]))
+            
 def fix_line_matrix():
     global line_matrix
     global line_counter
@@ -980,27 +812,54 @@ def fix_line_matrix():
     for i in range(len(line_matrix)):
         # If the row is shorter, add zeros at the end
         if len(line_matrix[i]) < target_size:
-            line_matrix[i] += [0] * (target_size - len(line_matrix[i]))
+            line_matrix[i] += [Fraction(0)] * (target_size - len(line_matrix[i]))
         # If the row is longer, truncate it to the target size
         elif len(line_matrix[i]) > target_size:
             line_matrix[i] = line_matrix[i][:target_size]
+            
 def try_line_matrix():
     global line_matrix
     if line_matrix == []:
         return
-    A = np.array(line_matrix, dtype=float)
-    before_rank = np.linalg.matrix_rank(A)
+    
+    A = np.array(line_matrix, dtype=object)
     new_matrix = gauss_jordan_elimination(A)
+    #print(line_counter_convert())
     for item in itertools.combinations(line_counter_convert(), 2):
-        row = [0]*(len(line_counter)+2)
-        row[index_line(*item[0])] = 1
-        row[index_line(*item[1])] = -1
+        row = [Fraction(0)]*(len(line_counter))
+        row[index_line(*item[0])] = Fraction(1)
+        row[index_line(*item[1])] = Fraction(-1)
+        old_matrix = copy.deepcopy(line_matrix)
         line_matrix.append(row)
-        fix_line_matrix()
-        if before_rank == np.linalg.matrix_rank(line_matrix):
+        #
+        #print_fraction_matrix_as_float(gauss_jordan_elimination(line_matrix))
+        
+        if matrices_equal(gauss_jordan_elimination(np.array(line_matrix, dtype=object)), new_matrix):
+            
             pass
         else:
-            line_matrix.pop(-1)
+            line_matrix = copy.deepcopy(old_matrix)
+    fix_line_matrix()
+def print_fraction_matrix_as_float(matrix):
+    """ Print a NumPy matrix of Fractions as floats. """
+    # Convert Fraction matrix to float matrix
+    float_matrix = np.array([[float(cell) for cell in row] for row in matrix])
+    
+    # Print matrix with float formatting
+    np.set_printoptions(precision=6, suppress=True)  # Set precision and suppress scientific notation
+    print(float_matrix)
+
+def matrices_equal(matrix1, matrix2):
+    """ Check if two matrices are exactly equal. """
+    if len(matrix1) != len(matrix2) or len(matrix1[0]) != len(matrix2[0]):
+        return False  # Matrices have different dimensions
+
+    for row1, row2 in zip(matrix1, matrix2):
+        if any(x != y for x, y in zip(row1, row2)):
+            return False  # Found differing elements
+    
+    return True
+
 def try_matrix():
     global matrix
     global matrix_eq
@@ -1009,35 +868,39 @@ def try_matrix():
     if matrix == []:
         return
 
-    A = np.array(matrix, dtype=float)
-    B = np.array(matrix_eq, dtype=float)
+    A = np.array(matrix, dtype=object)
+    B = np.array(matrix_eq, dtype=object)
     if B.ndim == 1:
         B = B.reshape(-1, 1)
     augmented_matrix = np.hstack((A, B))
-    before_rank = np.linalg.matrix_rank(augmented_matrix)
-    #print(augmented_matrix)
+    #print_fraction_matrix_as_float(augmented_matrix)
     new_matrix = gauss_jordan_elimination(augmented_matrix)
-    #A = matrix_to_l)
     
-    #print(new_matrix)
-    #print(all_angles)
     for item in itertools.combinations(all_angles, 2):
-        row = [0]*len(matrix[0])
-        row[all_angles.index(item[0])] = 1
-        row[all_angles.index(item[1])] = -1
+        row = [Fraction(0)]*len(matrix[0])
+        row[all_angles.index(item[0])] = Fraction(1)
+        row[all_angles.index(item[1])] = Fraction(-1)
         matrix.append(row)
-        matrix_eq.append(0)
-        if detect_inconsistency(np.hstack((np.array(matrix, dtype=float),np.array(matrix_eq, dtype=float).reshape(-1,1)))) and\
-           before_rank == np.linalg.matrix_rank(np.hstack((np.array(matrix, dtype=float),np.array(matrix_eq, dtype=float).reshape(-1,1)))):
+        matrix_eq.append(Fraction(0))
+
+        #print_fraction_matrix_as_float(gauss_jordan_elimination(np.hstack((np.array(matrix, dtype=object),np.array(matrix_eq, dtype=object).reshape(-1,1)))))
+        
+        if matrices_equal(gauss_jordan_elimination(np.hstack((np.array(matrix, dtype=object),np.array(matrix_eq, dtype=object).reshape(-1,1)))), new_matrix):
+
+            #print(item)
             pass
         else:
             matrix.pop(-1)
             matrix_eq.pop(-1)
+    print_fraction_matrix_as_float(new_matrix)
     for item in matrix_to_list(new_matrix):
-        if item[:-1].count(1) == 1 and item[:-1].count(0)+2 == len(item):
-            matrix.append(item[:-1])
-            matrix_eq.append(item[-1])
-            #eq_list.append(convert_angle_straight([all_angles[item[:-1].index(1)]], item[-1]))
+        # Count non-zero elements and their specific values
+        non_zero_count = sum(1 for x in item[:-1] if x != Fraction(0))
+        if non_zero_count == 1 and item.count(Fraction(1)) == 1 and len(item) == len(item[:-1]) + 1:
+            # Extract the lone variable and corresponding answer
+            matrix.append(item[:-1])  # Coefficients
+            matrix_eq.append(item[-1])  # Augmented part
+            
 def line_matrix_print(print_it=True):
     def remove_duplicate_rows(matrix):
         # Convert each row to a tuple and store in a set to remove duplicates
@@ -1047,15 +910,16 @@ def line_matrix_print(print_it=True):
     
     global line_matrix
     global point_pairs
+    
     fix_line_matrix()
-    #print(line_matrix)
+    
     line_matrix = remove_duplicate_rows(line_matrix)
-        
+    
     string = "$"
     for i in range(len(line_matrix)):
         for j in range(len(line_matrix[i])):
-            if not(abs(line_matrix[i][j]) < 0.01):
-                if line_matrix[i][j] < 0:
+            if line_matrix[i][j] != Fraction(0):
+                if line_matrix[i][j] < Fraction(0):
                     string += "-line("+index_line_matrix(j)+")"
                 else:
                     string += "+line("+index_line_matrix(j)+")"
@@ -1080,16 +944,17 @@ def matrix_print(print_it=True):
     matrix, matrix_eq = remove_duplicates(matrix, matrix_eq)
     for i in range(len(matrix)):
         matrix[i] = list(matrix[i])
-    #print(matrix)
-    #print(matrix_eq)
+        
     string = "$"
     for i in range(len(matrix)):
         for j in range(len(matrix[i])):
-            if not(abs(matrix[i][j]) < 0.01):
-                if matrix[i][j] < 0:
+            if matrix[i][j] != Fraction(0):
+                if matrix[i][j] == Fraction(-1):
                     string += "-angle("+all_angles[j]+")"
-                else:
+                elif matrix[i][j] == Fraction(1):
                     string += "+angle("+all_angles[j]+")"
+                else:
+                    string += "+"+str(float(matrix[i][j]))+"*angle("+all_angles[j]+")"
         string += "=" + str(int(matrix_eq[i])) + "\n"
     string = string.replace("\n+", "\n").replace("$+", "").replace("$", "")
     if print_it and string != "":
@@ -1101,114 +966,115 @@ def process(print_it=True):
     global points
     global point_pairs
     global all_angles
-    global fx_call
-    global eq_list
-    global buffer_eq_list
     global matrix
     global matrix_eq
     global line_matrix
-    buffer_eq_list = []
+    global eq_list
+    global alter
     
-    #print("I am prcoess")
     lines = [(points[start], points[end]) for start, end in point_pairs]
     print_diagram() 
     output = []
     find = find_intersections_2(points, point_pairs)
-    #if find != []:
-    #    return None
+    
     for i in range(len(points)):
+        
         for angle in itertools.combinations(surrounding_angle(i), 2):
+            
             if angle[0] != angle[1]:
+                
                 output.append(print_angle_4(angle[0], i, angle[1]))
-    #print(output)
+
+    
     output = list(set(output))
     append_angles = set(output) - set(all_angles)
     reject_angles = set(all_angles) - set(output)
-    #print(reject_angles)
+    
     all_angles = all_angles + list(append_angles)
 
     index_iter = sorted([all_angles.index(item) for item in reject_angles])[::-1]
-    #print(index_iter)
-    #print(matrix_eq)
+    
     #print(all_angles)
     for i in range(len(matrix)-1,-1,-1):
         for item in index_iter:
-            if int(matrix[i][item]) == 1:
+            if int(matrix[i][item]) != Fraction(0):
                 matrix.pop(i)
+                matrix_eq.pop(i)
                 break
     for item in index_iter:
         for i in range(len(matrix)):
             matrix[i].pop(item)
-        #matrix_eq.pop(item)
         all_angles.pop(item)
     for item in point_pairs:
         s = n2a(item[0])+n2a(item[1])
         index_line(*s)
-    #print(all_angles)
     output = []
     
     for i in range(len(points)):
         for angle in all_angles:
             if straight_line([a2n(x) for x in angle]):
-                #print(angle)
+                
                 output.append(angle)
     output = list(set(output))
     for x in output:
-        #buffer_eq_list.append(convert_angle_straight([x], 180))
-        #print(string_equation()
-        #print(x + " = 180")
         
         index_line(*line_sort(x[0]+x[1]))
-        matrix.append([0]*len(all_angles))
-        matrix[-1][all_angles.index(x)] = 1
-        matrix_eq.append(180)
+        matrix.append([Fraction(0)]*len(all_angles))
+        matrix[-1][all_angles.index(x)] = Fraction(1)
+        matrix_eq.append(Fraction(180))
         
-        row = [0]*(len(line_counter)+3)
-        row[index_line(x[0], x[1])] = 1
-        row[index_line(x[1], x[2])] = 1
-        row[index_line(x[2], x[0])] = -1
+        row = [Fraction(0)]*(len(line_counter)+3)
+        row[index_line(x[0], x[1])] = Fraction(1)
+        row[index_line(x[1], x[2])] = Fraction(1)
+        row[index_line(x[2], x[0])] = Fraction(-1)
         line_matrix.append(row)
-        #buffer_eq_list.append(convert_line(line_sort(x[0]+x[1]), line_sort(x[1]+x[2]), line_sort(x[0]+x[2])))
-        #print(string_equation()
-        #print( + " + " +  + " = " + )
+        
 
-    output = []
     for angle in itertools.permutations(all_angles, 3):
         if combine(angle[0], angle[1]) == angle[2]:
-            if calculate_angle(angle[2]) > calculate_angle(angle[0]) and\
-               calculate_angle(angle[2]) > calculate_angle(angle[1]) and\
-               abs(calculate_angle(angle[2]) - calculate_angle(angle[0]) - calculate_angle(angle[1])) < 10:
-                if angle[1] + " + " + angle[0] + " = " + angle[2] not in output:
-                    matrix.append([0]*len(all_angles))
-                    matrix[-1][all_angles.index(angle[0])] = 1
-                    matrix[-1][all_angles.index(angle[1])] = 1
-                    matrix[-1][all_angles.index(angle[2])] = -1
-                    matrix_eq.append(0)
-                    output.append(angle[0] + " + " + angle[1] + " = " + angle[2])
-                    #buffer_eq_list.append(convert_angle_add(angle[0], angle[1], angle[2]))
+            go_to_next = False
+            if straight_line_2(angle[0]) or straight_line_2(angle[1]) or straight_line_2(angle[2]):
+                if straight_line_2(angle[2]):
+                    go_to_next = True
+                else:
+                    continue
+            if not go_to_next:
+                
+                hhh = [a2n(h) for h in list(set(angle[0]+angle[1]+angle[2])) if list(angle[0]+angle[1]+angle[2]).count(h) == 3][0]
+                hh = [(a2n(h), hhh) for h in list(set(angle[0]+angle[1]+angle[2])) if list(angle[0]+angle[1]+angle[2]).count(h) == 2]
+                orig = copy.deepcopy(point_pairs)
+                point_pairs = hh
+                hh = surrounding_angle(hhh)
+                point_pairs = copy.deepcopy(orig)
+            
+            if go_to_next or n2a(hh[1]) not in angle[2]:
+                matrix.append([Fraction(0)]*len(all_angles))
+                matrix[-1][all_angles.index(angle[0])] = Fraction(1)
+                matrix[-1][all_angles.index(angle[1])] = Fraction(1)
+                matrix[-1][all_angles.index(angle[2])] = Fraction(-1)
+                matrix_eq.append(Fraction(0))
                     
-    output = list(set(output))
     for angle in itertools.combinations(all_angles, 2):
         if angle[0][1] == angle[1][1] and straight_line([a2n(x) for x in angle[0]]) and straight_line([a2n(x) for x in angle[1]]):
-            tmp1 = angle_sort(angle[1][0] + angle[0][1] + angle[0][2])
-            tmp2 = angle_sort(angle[0][0] + angle[1][1] + angle[1][2])
-            output.append(tmp1 + " = " + tmp2)
-            #buffer_eq_list.append(convert_angle_eq(tmp1, tmp2))
-            matrix.append([0]*len(all_angles))
-            matrix[-1][all_angles.index(tmp1)] = 1
-            matrix[-1][all_angles.index(tmp2)] = -1
-            matrix_eq.append(0)
+            tmp1 = print_angle_3(angle[1][0] + angle[0][1] + angle[0][2])
+            tmp2 = print_angle_3(angle[0][0] + angle[1][1] + angle[1][2])
+            matrix.append([Fraction(0)]*len(all_angles))
+            matrix[-1][all_angles.index(tmp1)] = Fraction(1)
+            matrix[-1][all_angles.index(tmp2)] = Fraction(-1)
+            matrix_eq.append(Fraction(0))
             
-            tmp1 = angle_sort(angle[1][2] + angle[0][1] + angle[0][2])
-            tmp2 = angle_sort(angle[1][0] + angle[1][1] + angle[0][0])
-            output.append(tmp1 + " = " + tmp2)
-            matrix.append([0]*len(all_angles))
-            matrix[-1][all_angles.index(tmp1)] = 1
-            matrix[-1][all_angles.index(tmp2)] = -1
-            matrix_eq.append(0)
-            #buffer_eq_list.append(convert_angle_eq(tmp1, tmp2))
+            tmp1 = print_angle_3(angle[1][2] + angle[0][1] + angle[0][2])
+            tmp2 = print_angle_3(angle[1][0] + angle[1][1] + angle[0][0])
+            matrix.append([Fraction(0)]*len(all_angles))
+            matrix[-1][all_angles.index(tmp1)] = Fraction(1)
+            matrix[-1][all_angles.index(tmp2)] = Fraction(-1)
+            matrix_eq.append(Fraction(0))
 
+    generate_all_lines()
+    fix_line_matrix()
+    
     all_triangle(all_angles)
+    do_isoceles()
     matrix_print(print_it)
     line_matrix_print(print_it)
     eq_list = list(set(eq_list))
@@ -1218,163 +1084,83 @@ def process(print_it=True):
 def all_cycle(graph):
     global lines, matrix, matrix_eq, points, point_pairs, all_angles
     cycles = []
-    
     def findNewCycles(path):
         start_node = path[0]
         next_node = None
-        
         for edge in graph:
             node1, node2 = edge
-            
             if start_node in edge:
                 next_node = node2 if node1 == start_node else node1
-                
                 if not visited(next_node, path):
-                    # Continue searching for cycles by extending the current path
                     sub_path = [next_node] + path
                     findNewCycles(sub_path)
                 elif len(path) > 2 and next_node == path[-1]:
-                    # A cycle is found if the path closes (next_node == path[-1])
                     p = rotate_to_smallest(path)
                     inv = invert(p)
-                    
                     if isNew(p) and isNew(inv):
                         cycles.append(p)
-    
     def invert(path):
-        # Reverse the path and rotate to get the smallest lexicographical order
         return rotate_to_smallest(path[::-1])
-    
     def rotate_to_smallest(path):
-        # Rotate the path to start with the smallest node for consistency
         n = path.index(min(path))
         return path[n:] + path[:n]
-    
     def isNew(path):
-        # Check if the path (cycle) is not already in the list of cycles
         return path not in cycles
-    
     def visited(node, path):
-        # Check if a node has already been visited in the current path
         return node in path
-    
     for edge in graph:
         for node in edge:
             findNewCycles([node])
-    
-    # Optional: Sort cycles or process them further if needed
     return cycles
 
-def is_point_in_polygon(point, polygon):
-    """Check if a point is inside a polygon using the ray-casting algorithm."""
-    x, y = point
-    n = len(polygon)
-    inside = False
 
-    # Iterate through each edge of the polygon
-    px, py = polygon[0]
-    for i in range(1, n + 1):
-        sx, sy = polygon[i % n]
-        # Check if the point is inside the y-bounds of the edge
-        if min(py, sy) < y <= max(py, sy) and x <= max(px, sx):
-            if py != sy:
-                # Compute the x coordinate of the intersection point
-                xints = (y - py) * (sx - px) / (sy - py) + px
-            # If the point's x is less than the intersection x, toggle the inside flag
-            if px == sx or x <= xints:
-                inside = not inside
-        # Move to the next edge
-        px, py = sx, sy
 
-    return inside
-
-def perpendicular_line_intersection(segment_start, segment_end, point, tolerance=1e-9, precision=10):
-    # Unpacking coordinates
+def perpendicular_line_intersection(segment_start, segment_end, point):
     x1, y1 = segment_start
     x2, y2 = segment_end
-    px, py = point
-
-    # Step 1: Handle the case of a horizontal line (y1 == y2)
-    if abs(y2 - y1) < tolerance:  # Horizontal line case
-        intersection_x = px  # The perpendicular line will be vertical
-        intersection_y = y1  # Same y as the horizontal line
-        return round(intersection_x, precision), round(intersection_y, precision)
-
-    # Step 2: Handle the case of a vertical line (x1 == x2)
-    if abs(x2 - x1) < tolerance:  # Vertical line case
-        intersection_x = x1  # The perpendicular line will be horizontal
-        intersection_y = py
-        return round(intersection_x, precision), round(intersection_y, precision)
-
-    # Regular slope of the given line
-    slope_segment = (y2 - y1) / (x2 - x1)
-    intercept_segment = y1 - slope_segment * x1
-
-    # Step 3: Find the slope of the perpendicular line (negative reciprocal)
-    perpendicular_slope = -1 / slope_segment
-
-    # Step 4: Find the equation of the perpendicular line passing through the point (px, py)
-    intercept_perpendicular = py - perpendicular_slope * px
-
-    # Step 5: Solve the system of equations (where the two lines intersect):
-    # Line 1 (segment): y = slope_segment * x + intercept_segment
-    # Line 2 (perpendicular): y = perpendicular_slope * x + intercept_perpendicular
-
-    # Set the equations equal to each other to find the x-coordinate of the intersection:
-    # slope_segment * x + intercept_segment = perpendicular_slope * x + intercept_perpendicular
-    intersection_x = (intercept_perpendicular - intercept_segment) / (slope_segment - perpendicular_slope)
-
-    # Step 6: Use the x-coordinate to find the y-coordinate
-    intersection_y = slope_segment * intersection_x + intercept_segment
-
-    # Rounding to avoid floating-point inaccuracies
-    intersection_x = round(intersection_x, precision)
-    intersection_y = round(intersection_y, precision)
-
-    return (intersection_x, intersection_y)
-
-def triangle_centroid(p1, p2, p3):
-    """Calculate the centroid of a triangle given its three vertices."""
-    return ((p1[0] + p2[0] + p3[0]) / 3, (p1[1] + p2[1] + p3[1]) / 3)
-
-
-def is_reflex_by_circle(polygon, radius=1.0):
-    """Identify reflex vertices by using circles and centroid method."""
-    reflex_vertices = []
-    n = len(polygon)
-
-    for i in range(n):
-        current_vertex = polygon[i]
-        prev_vertex = polygon[i - 1]
-        next_vertex = polygon[(i + 1) % n]
+    xp, yp = point
+    
+    # Case 1: If the line is vertical (x1 == x2), the perpendicular line will have the same x-coordinate
+    if x2 == x1:
+        xq = x1
+        yq = yp
+    # Case 2: If the line is horizontal (y1 == y2), the perpendicular line will have the same y-coordinate
+    elif y2 == y1:
+        xq = xp
+        yq = y1
+    # Case 3: General case for a non-horizontal, non-vertical line
+    else:
+        # Slope of the line AB
+        m = (y2 - y1) / (x2 - x1)
+        # Slope of the perpendicular line
+        m_perp = -1 / m
         
-        # Form lines with adjacent vertices
-        lines = [
-            (prev_vertex, current_vertex),
-            (current_vertex, next_vertex)
-        ]
-
-        # Find the intersections
-        intersections = find_intersections(lines, current_vertex, radius)
+        # Solve for xq using the equation:
+        # m(xq - x1) + y1 = m_perp(xq - xp) + yp
+        xq = (m * x1 - m_perp * xp + yp - y1) / (m - m_perp)
         
-        if len(intersections) < 2:
-            continue  # Not enough intersections to form a triangle
-        
-        # Take the first intersection points found
-        intersection1, _ = intersections[0]
-        intersection2, _ = intersections[1]
+        # Find yq using the equation of line AB: yq = m(xq - x1) + y1
+        yq = m * (xq - x1) + y1
+    
+    return (xq, yq)
 
-        # Form the triangle
-        triangle = [current_vertex, intersection1, intersection2]
 
-        # Calculate the centroid of the triangle
-        centroid = triangle_centroid(*triangle)
-
-        # Check if the centroid is inside the polygon
-        if not is_point_in_polygon(centroid, polygon):
-            reflex_vertices.append(i)
-
-    return reflex_vertices
+def is_reflex_vertex(polygon, vertex_index):
+    prev_index = (vertex_index - 1) % len(polygon)
+    next_index = (vertex_index + 1) % len(polygon)
+    modified_polygon = polygon[:vertex_index] + polygon[vertex_index + 1:]
+    original_area = polygon_area(polygon)
+    modified_area = polygon_area(modified_polygon)
+    if modified_area <= original_area:
+        return False
+    else:
+        return True
+def is_reflex_by_circle(polygon):
+    output = []
+    for i in range(len(polygon)):
+        if is_reflex_vertex(polygon, i):
+            output.append(i)
+    return output
 
 all_tri = []
 
@@ -1388,7 +1174,7 @@ def all_triangle(all_angles):
     global all_tri
     #all_tri = []
     cycle = all_cycle(point_pairs)
-    print(point_pairs)
+    #print(point_pairs)
     new_cycle = []
     for item in cycle:
         remove_item = []
@@ -1401,66 +1187,58 @@ def all_triangle(all_angles):
                 new_item.pop(i)
         new_cycle.append(new_item)
     for x in new_cycle:
-        #print("below")
-        #print(x)
+        
         to_remove = []
         for i in range(-2, len(x)-2, 1):
             angle = [x[i], x[i+1], x[i+2]]
             if straight_line(angle):
                 to_remove.append(i)
         to_remove = sorted(to_remove)[::-1]
-        #print(to_remove)
+        
         for item in to_remove:
             x.pop(item)
-        #print(x)
-        #print("above")
+            
         convex_angle = is_reflex_by_circle([points[y] for y in x])
-        #if not is_convex
-        #print(convex_angle)
+        
         out = []
         v = None
         for i in range(-2, len(x)-2, 1):
             angle = [x[i], x[i+1], x[i+2]]
             tmp = [[z for z in x][y] for y in convex_angle]
-            #print(tmp)
-            #print(points[angle[1]])
+            
             v = "".join([n2a(y) for y in angle])
             if angle[1] in tmp:
                 out.append("(360-" + print_angle_3("".join([n2a(y) for y in angle])) + ")")
             else:
                 out.append(print_angle_3("".join([n2a(y) for y in angle])))
+
         
-        #print("JH")
-        #print(" + ".join(out) + " = " + str())
-        #print(out)
         if len(x) == 3:
             all_tri.append(v)
         if out == []:
             continue
         
         copy_out = copy.deepcopy(out)
-        # buffer_eq_list.append(convert_angle_straight(out, 180*(len(x)-2)))
+        
         
         out = copy.deepcopy(copy_out)
         for i in range(len(out)):
             out[i] = out[i].replace("(360-","").replace(")","")
         
-        matrix.append([0]*len(all_angles))
+        matrix.append([Fraction(0)]*len(all_angles))
         subtract = 0
         
         for i in range(len(out)):
             if "(360-" in copy_out[i]:
                 #continue
                 subtract += 360
-                matrix[-1][all_angles.index(out[i])] = -1
+                matrix[-1][all_angles.index(out[i])] = Fraction(-1)
             else:
-                matrix[-1][all_angles.index(out[i])] = 1
-            #matrix[-1][all_angles.index(out[1])] = 1
-            #matrix[-1][all_angles.index(out[2])] = 1
-        matrix_eq.append(180*(len(x)-2)-subtract)
+                matrix[-1][all_angles.index(out[i])] = Fraction(1)
+        matrix_eq.append(Fraction(180*(len(x)-2)-subtract))
 
     all_tri = list(set(all_tri))
-#process()
+
 def fix_angle_line(eq):
     global all_angles
     
@@ -1493,8 +1271,11 @@ def extend(line, point_start, distance):
     length_ba = math.sqrt(ba[0]**2 + ba[1]**2)
     unit_vector_ba = [ba[0] / length_ba, ba[1] / length_ba]
     bc = [unit_vector_ba[0] * distance, unit_vector_ba[1] * distance]
-    c = [round(a[0] + bc[0]), round(a[1] + bc[1])]
-    points.append(tuple(c))
+    c = tuple([Fraction(round(a[0] + bc[0])), Fraction(round(a[1] + bc[1]))])
+    out = c
+    if polygon_area([a,b,c]) != Fraction(0):
+        out = perpendicular_line_intersection(a, b, c)
+    points.append(out)
     print_text("new point added")
 
 def divide_line(line, new_val=None):
@@ -1518,7 +1299,7 @@ def divide_line(line, new_val=None):
     point_pairs.pop(point_pairs.index((a,b)))
     point_pairs.append((len(points),a))
     point_pairs.append((len(points),b))
-    points.append(new_point)
+    points.append((Fraction(new_point[0]), Fraction(new_point[1])))
     #process()
 
 def is_point_on_line(line, point, tolerance=500):
@@ -1527,30 +1308,7 @@ def is_point_on_line(line, point, tolerance=500):
     b = points[line[1]]
     c = point
     
-    # Calculate vectors AB and AC
-    ab = [b[0] - a[0], b[1] - a[1]]
-    ac = [c[0] - a[0], c[1] - a[1]]
-    
-    # Calculate the cross product to check for collinearity
-    cross_product = ab[0] * ac[1] - ab[1] * ac[0]
-    
-    # Check if the cross product is within the tolerance (i.e., points are collinear)
-    if abs(cross_product) > tolerance:
-        return False
-    
-    # Check if the point C is within the bounds of the line segment AB
-    # Use dot product to ensure the point lies between A and B
-    dot_product = ab[0] * ac[0] + ab[1] * ac[1]
-    
-    if dot_product < 0:
-        return False
-    
-    squared_length_ab = ab[0]**2 + ab[1]**2
-    
-    if dot_product > squared_length_ab:
-        return False
-    
-    return True
+    return polygon_area([a,b,c]) == Fraction(0)
 
 def find_line_for_point(point):
     """Find all line segments that the given point lies on."""
@@ -1569,15 +1327,15 @@ def connect_point(point_ab):
     output = []
     point_a, point_b = point_ab
     point_pairs.append((a2n(point_a), a2n(point_b)))
-    #print(
+
     inter = find_intersections_2(points, point_pairs)
-    #print(inter)
+    print(inter)
+    print("HHIH")
+    
     for p in inter:
-        p = (round(p[0]), round(p[1]))
+        
         item_list = find_line_for_point(p)
-        #print(item_list)
-        #print(p, [points[a2n(point_a)], points[a2n(point_b)]])
-        #print(point_pairs[item_list[0]])
+        
         points.append(p)
         to_remove = []
         to_add = []
@@ -1590,8 +1348,6 @@ def connect_point(point_ab):
         s1 = print_angle_4(a1, len(points)-1, a4), print_angle_4(a3, len(points)-1, a2)
         s2 = print_angle_4(a1, len(points)-1, a3), print_angle_4(a4, len(points)-1, a2)
 
-        
-        
 
         output.append(s1)
 
@@ -1604,17 +1360,16 @@ def connect_point(point_ab):
             point_pairs.append(item)
     
     return output
-    #print_text("\n")
-    #print(points)
-    #print(point_pairs)
-    #process()
+
     
 def draw_triangle():
     global points
     global point_pairs
-    points = [(200,900), (800,900), (500,500)]
+    points = [(Fraction(400),Fraction(800)), (Fraction(800),Fraction(750)), (Fraction(600),Fraction(400))]
+
+    #points = [(Fraction(-1),Fraction(0)), (Fraction(0),Fraction(1)), (Fraction(1),Fraction(0))]
     point_pairs = [(0,1), (1,2), (2,0)]
-    #process()
+    
 def perpendicular(point, line, ver=1):
     global points
     global point_pairs
@@ -1632,21 +1387,21 @@ def perpendicular(point, line, ver=1):
     tmp = connect_point(n2a(len(points)-1)+point)
     process(False)
     for item in tmp:
-        row = [0]*len(all_angles)
-        row[all_angles.index(item[0])] = 1
-        row[all_angles.index(item[1])] = -1
+        row = [Fraction(0)]*len(all_angles)
+        row[all_angles.index(item[0])] = Fraction(1)
+        row[all_angles.index(item[1])] = Fraction(-1)
         matrix.append(row)
-        matrix_eq.append(0)
+        matrix_eq.append(Fraction(0))
         
     eq1 = print_angle_3(point+n2a(num)+line[0])
     eq2 = print_angle_3(point+n2a(num)+line[1])
-    row = [0]*len(all_angles)
-    row[all_angles.index(eq1)] = 1
-    matrix_eq.append(90)
+    row = [Fraction(0)]*len(all_angles)
+    row[all_angles.index(eq1)] = Fraction(1)
+    matrix_eq.append(Fraction(90))
     matrix.append(row)
-    row = [0]*len(all_angles)
-    row[all_angles.index(eq2)] = 1
-    matrix_eq.append(90)
+    row = [Fraction(0)]*len(all_angles)
+    row[all_angles.index(eq2)] = Fraction(1)
+    matrix_eq.append(Fraction(90))
     matrix.append(row)
     
 import copy
@@ -1674,6 +1429,64 @@ def convert_form_2(eq):
     if all(x not in eq for x in ["f_triangle", "f_xtriangle", "f_xangle", "f_angle", "f_congruent", "f_xcongruent", "f_xline"]):
         return str_form(num_not_var(tree_form(eq)))
     return None
+def find_all_paths(graph, start_node, end_node, path=[]):
+    path = path + [start_node]
+    if start_node == end_node:
+        return [path]
+    if start_node not in graph:
+        return []
+    paths = []
+    for neighbor in graph[start_node]:
+        if neighbor not in path:
+            new_paths = find_all_paths(graph, neighbor, end_node, path)
+            for p in new_paths:
+                paths.append(p)
+    return paths
+
+def generate_graph():
+    graph = dict()
+    for i in range(len(points)):
+        graph[n2a(i)] = [n2a(x) for x in surrounding_angle(i)]
+    return graph
+
+def generate_all_lines():
+    for item in itertools.combinations(range(len(points)), 2):
+        for path in find_all_paths(generate_graph(), item[0], item[1]):
+            if straight_line_2(path):
+                for item2 in itertools.combinations(path, 2):
+                    index_line(item2[0], item2[1])
+def is_same_line(line1, line2):
+    if line1 == line2:
+        return True
+    for item in itertools.combinations(range(len(points)), 2):
+        for path in find_all_paths(generate_graph(), item[0], item[1]):
+            if straight_line_2(path) and line1[0] in path and line1[1] in path and line2[0] in path and line2[1] in path:
+                return True
+    return False
+def do_isoceles():
+    global line_matrix
+    global all_angles
+    global matrix
+    global matrix_eq
+    global all_tri
+    lst = line_counter_convert()
+    for item in line_matrix:
+        if item.count(Fraction(0))==len(item)-2 and item.count(Fraction(1)) == 1 and item.count(Fraction(-1)) == 1:
+            line1 = lst[item.index(1)]
+            line2 = lst[item.index(-1)]
+            for tri in all_tri:
+                if line1[0] in tri and line2[0] in tri and line1[1] in tri and line2[1] in tri:
+                    common = set(line1) & set(line2)
+                    common = list(common)[0]
+                    a = list(set(line1) - set(common))[0]
+                    b = list(set(line2) - set(common))[0]
+                    row = [Fraction(0)]*len(all_angles)
+                    row[all_angles.index(print_angle_3(common+a+b))] = Fraction(1)
+                    row[all_angles.index(print_angle_3(common+b+a))] = Fraction(-1)
+                    matrix.append(row)
+                    matrix_eq.append(Fraction(0))
+                    break
+import re
 def do_cpct():
     global eq_list
     global matrix
@@ -1681,38 +1494,15 @@ def do_cpct():
     cpct_output = []
     for item in eq_list:
         if "congruent" in item:
-            cpct_output += math_2.search(item, 3, [None, "formula-list-9/c.txt", None])
-    
-    cpct_output = list(set([fix_angle_line(x) for x in cpct_output]))
-
-    for item in cpct_output:
-        if "angle" in item:
-            item = tree_form(item)
-            s1 = print_angle_3(item.children[0].children[0].name[2:]+item.children[0].children[1].name[2:]+item.children[0].children[2].name[2:])
-            s2 = print_angle_3(item.children[1].children[0].name[2:]+item.children[1].children[1].name[2:]+item.children[1].children[2].name[2:])
-            if s1 == s2:
-                continue
-            row = [0]*len(all_angles)
-            row[all_angles.index(s1)] = 1
-            row[all_angles.index(s2)] = -1
-            matrix.append(row)
-            matrix_eq.append(0)
-            #print("JH")
-        else:
-            item = tree_form(item)
-            s1 = line_sort(item.children[0].children[0].name[2:]+item.children[0].children[1].name[2:])
-            s2 = line_sort(item.children[1].children[0].name[2:]+item.children[1].children[1].name[2:])
-            if s1 == s2:
-                continue
-            row = [0]*(len(line_counter)+2)
-            a = index_line(*s1)
-            b = index_line(*s2)
-            row[a] = 1
-            row[b] = -1
-            line_matrix.append(row)
-            fix_line_matrix()
-    #eq_list += cpct_output
-    #eq_list = list(set(eq_list))
+            m = re.findall(r'[A-Z]{3}', string_equation(item))
+            m_list = []
+            for item2 in itertools.permutations(range(3)):
+                m_list.append([   m[0][item2[0]] + m[0][item2[1]] +  m[0][item2[2]],\
+                                  m[1][item2[0]] + m[1][item2[1]] +  m[1][item2[2]]    ])
+            for item2 in m_list:
+                add_angle_equality(item2[0], item2[1])
+                add_line_equality(item2[0][:-1], item2[1][:-1])
+    fix_matrix()
 def run_parallel_function():
     global points
     global point_pairs
@@ -1721,7 +1511,6 @@ def run_parallel_function():
     global matrix
     global matrix_eq
     global all_tri
-    #prove congruent(triangle(BCD),triangle(ECA))
     command=\
 """draw triangle
 extend AC from C for 100
@@ -1776,16 +1565,86 @@ equation line(AC)=line(BC)
 equation angle(ACD)=angle(BCD)
 auto"""
     command =\
+"""draw triangle
+split AB
+join CD
+extend AB from A for 300
+join AE CE
+equation line(CE)=line(BC)
+equation line(DE)=line(AB)
+auto"""
+    command =\
+"""draw triangle
+split AB
+join CD
+equation angle(ADC)=90
+equation line(BD)=line(AD)
+auto
+auto"""
+    command =\
+"""draw triangle
+split AB
+join CD
+extend CD from D for 300
+join DE AE BE
+equation line_eq AC BC
+equation line_eq AE BE
+compute"""
+
+
+    command =\
+"""draw triangle
+extend AC from C for 400
+join CD BD
+split BC
+join AE
+extend AE to BD
+join EF
+compute"""
+    command =\
 """hide
 draw triangle
+perpendicular C to AB
+equation line_eq AC BC
+compute
+show
+compute"""
+    command =\
+"""draw triangle
+extend AC from C for 200
+extend BC from C for 200
+join CD DE CE
+equation parallel_line AB DE
+equation line_eq AC CD
+compute"""
+    command =\
+"""hide
+draw quadrilateral
+join BD
+equation parallel_line AB CD
+equation parallel_line AD BC
+compute
+show
+compute"""
+    command =\
+"""draw triangle
 split BC
 split AC
-join BE AD
-equation line(CE)=line(CD)
-equation line(AE)=line(CE)
-equation line(CD)=line(BD)
-show
-auto"""
+join AD BE
+equation line_eq AE CE
+equation line_eq BD CD
+equation line_eq AC BC
+compute
+compute"""
+    command =\
+"""draw triangle
+extend AB from A for 200
+join CD AD
+split AB
+join CE
+equation line_eq DE AB
+equation line_eq CD BC
+compute"""
     command = command.split("\n")
     """
     """
@@ -1806,7 +1665,10 @@ auto"""
             print_on = True
         if string[:13] == "draw triangle":
             draw_triangle()
-        elif string == "auto":
+        elif string == "draw quadrilateral":
+            points = [(Fraction(400),Fraction(800)), (Fraction(800),Fraction(750)), (Fraction(600),Fraction(400)), (Fraction(400),Fraction(550))]
+            point_pairs = [(0,1), (1,2), (2,3), (3,0)]
+        elif string == "compute":
             try_line_matrix()
             def two(angle1, angle2):
                 list1 = list(itertools.permutations(list(angle1)))
@@ -1818,10 +1680,11 @@ auto"""
                             
                             return
             if len(all_tri) > 1:
-                print(all_tri)
+                #print(all_tri)
                 for item in itertools.combinations(all_tri, 2):
                     #print(item[0], item[1])
                     two(item[0], item[1])
+            
             output = try_matrix()
         elif string == "draw right triangle":
             points = [(100,400), (300,400), (300,200)]
@@ -1841,6 +1704,14 @@ auto"""
                 eq_list.append(output)
         elif string.split(" ")[0] == "extend" and string.split(" ")[2] == "from" and string.split(" ")[4] == "for":
             extend(string.split(" ")[1], string.split(" ")[3], int(string.split(" ")[5]))
+        elif string.split(" ")[0] == "extend" and string.split(" ")[2] == "to":
+            val = find_intersection(points[a2n(string.split(" ")[1][0])][0], points[a2n(string.split(" ")[1][0])][1],\
+                                    points[a2n(string.split(" ")[1][1])][0], points[a2n(string.split(" ")[1][1])][1],\
+                                    points[a2n(string.split(" ")[3][0])][0], points[a2n(string.split(" ")[3][0])][1],\
+                                    points[a2n(string.split(" ")[3][1])][0], points[a2n(string.split(" ")[3][1])][1])
+            print(val)
+            divide_line(string.split(" ")[3], val[0])
+            
         elif string.split(" ")[0] == "split":
             divide_line(string.split(" ")[-1])
         elif string == "cpct":
@@ -1849,33 +1720,47 @@ auto"""
             list_join = string.split(" ")[1:]
             tmp = None
             for join_iter in list_join:
+                print("hi")
                 tmp = connect_point(join_iter)
-            
             process(False)
-            print(np.array(matrix))
             for item in tmp:
-                row = [0]*len(all_angles)
-                row[all_angles.index(item[0])] = 1
-                row[all_angles.index(item[1])] = -1
+                row = [Fraction(0)]*len(all_angles)
+                row[all_angles.index(item[0])] = Fraction(1)
+                row[all_angles.index(item[1])] = Fraction(-1)
                 matrix.append(row)
-                matrix_eq.append(0)
+                matrix_eq.append(Fraction(0))
         elif string.split(" ")[0] == "equation":
-            eq = fix_angle_line(parser_4.take_input(string.split(" ")[1]))
             
-            if "angle" in eq:
-                eq = convert_form(eq)
-                if eq:
-                    m, meq = find_all(eq, len(all_angles))
-                    matrix.append(m)
-                    matrix_eq.append(-meq)
-            elif "parallel" in eq:
+            eq_type = string.split(" ")[1]
+            if "angle_eq" == eq_type:
+                a = print_angle_3(string.split(" ")[2])
+                b = print_angle_3(string.split(" ")[3])
+                row = [Fraction(0)]*len(all_angles)
+                row[all_angles.index(a)] = Fraction(1)
+                row[all_angles.index(b)] = Fraction(-1)
+                matrix.append(row)
+                matrix_eq.append(Fraction(0))
+            elif "angle_val" == eq_type:
+                a = print_angle_3(string.split(" ")[2])
+                val = int(string.split(" ")[3])
+                row = [Fraction(0)]*len(all_angles)
+                row[all_angles.index(a)] = Fraction(1)
+                matrix.append(row)
+                matrix_eq.append(Fraction(val))
+            elif "parallel_line" == eq_type:
+                a = line_sort(string.split(" ")[2])
+                b = line_sort(string.split(" ")[3])
+                eq = str_form(TreeNode("f_parallel", [line_fx(line_sort(a)), line_fx(line_sort(b))]))
                 eq_list.append(eq)
-                proof_fx_2(eq)
-            elif "line" in eq:
-                eq = convert_form_2(eq)
-                if eq:
-                    m, meq = find_all(eq, len(line_counter))
-                    line_matrix.append(m)
+                proof_fx_2(a, b)
+            elif "line_eq" == eq_type:
+                a = line_sort(string.split(" ")[2])
+                b = line_sort(string.split(" ")[3])
+                row = [Fraction(0)]*(len(all_angles)+2)
+                row[index_line(*a)] = Fraction(1)
+                row[index_line(*b)] = Fraction(-1)
+                line_matrix.append(row)
+                fix_line_matrix()
 
 
 # Create main window

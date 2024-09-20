@@ -1,0 +1,7 @@
+draw quadrilateral
+join BD
+equation angle_eq ABD CBD
+equation angle_val BAD 90
+equation angle_val BCD 90
+compute
+compute

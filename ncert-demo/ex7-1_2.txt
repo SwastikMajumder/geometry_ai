@@ -1,0 +1,5 @@
+draw quadrilateral
+join AC BD
+equation angle_eq ADC BAD
+equation line_eq CD AB
+compute

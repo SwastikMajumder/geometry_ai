@@ -1,0 +1,9 @@
+draw triangle
+split BC
+split AC
+join AD BE
+equation line_eq AE CE
+equation line_eq BD CD
+equation line_eq AC BC
+compute
+compute

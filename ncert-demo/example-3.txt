@@ -1,0 +1,7 @@
+draw triangle
+extend AC from C for 200
+extend BC from C for 200
+join CD DE CE
+equation parallel_line AB DE
+equation line_eq AC CD
+compute
